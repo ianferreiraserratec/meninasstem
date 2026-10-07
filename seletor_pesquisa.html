@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <base target="_top">
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        padding: 16px;
+      }
+
+      label {
+        display: block;
+        margin-bottom: 8px;
+        font-weight: bold;
+      }
+
+      select {
+        width: 100%;
+        padding: 8px;
+        margin-bottom: 16px;
+        box-sizing: border-box;
+      }
+
+      .acoes {
+        display: flex;
+        justify-content: flex-end;
+        gap: 8px;
+      }
+
+      button {
+        padding: 8px 14px;
+        cursor: pointer;
+      }
+
+      .barra-loading {
+        width: 40%;
+        height: 100%;
+        background: #1a73e8;
+        border-radius: 999px;
+        animation: loadingBar 1.2s infinite ease-in-out;
+      }
+
+      @keyframes loadingBar {
+        0% {
+          transform: translateX(-120%);
+        }
+        50% {
+          transform: translateX(80%);
+        }
+        100% {
+          transform: translateX(250%);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <label for="pesquisa">Selecione a pesquisa</label>
+    <select id="pesquisa">
+      <option value="">Carregando...</option>
+    </select>
+
+    <div class="acoes">
+      <button onclick="google.script.host.close()">Cancelar</button>
+      <button onclick="confirmarSelecao()">Continuar</button>
+    </div>
+
+    <div id="loading" style="display:none; margin-top:16px;">
+      <div style="margin-bottom:8px; font-weight:bold;">Processando...</div>
+      <div style="width:100%; height:10px; background:#e0e0e0; border-radius:999px; overflow:hidden;">
+        <div class="barra-loading"></div>
+      </div>
+    </div>
+    <script>
+      const modo = '<?= modo ?>';
+
+      function carregarPesquisas() {
+        google.script.run
+          .withSuccessHandler(function(lista) {
+            const select = document.getElementById('pesquisa');
+            select.innerHTML = '';
+
+            if (!lista || lista.length === 0) {
+              const option = document.createElement('option');
+              option.value = '';
+              option.textContent = 'Nenhuma pesquisa cadastrada';
+              select.appendChild(option);
+              return;
+            }
+
+            const optionPadrao = document.createElement('option');
+            optionPadrao.value = '';
+            optionPadrao.textContent = 'Selecione...';
+            select.appendChild(optionPadrao);
+
+            lista.forEach(function(idPesquisa) {
+              const option = document.createElement('option');
+              option.value = idPesquisa;
+              option.textContent = idPesquisa;
+              select.appendChild(option);
+            });
+          })
+          .withFailureHandler(function(erro) {
+            alert('Erro ao carregar pesquisas: ' + erro.message);
+          })
+          .listarPesquisas();
+      }
+
+      function confirmarSelecao() {
+        const idPesquisa = document.getElementById('pesquisa').value;
+
+        if (!idPesquisa) {
+          alert('Selecione uma pesquisa.');
+          return;
+        }
+
+        document.getElementById('pesquisa').disabled = true;
+        document.getElementById('loading').style.display = 'block';
+
+        const botoes = document.querySelectorAll('button');
+        botoes.forEach(btn => btn.disabled = true);
+
+        google.script.run
+          .withSuccessHandler(function(msg) {
+            alert(msg);
+            google.script.host.close();
+          })
+          .withFailureHandler(function(erro) {
+            alert('Erro: ' + erro.message);
+            document.getElementById('pesquisa').disabled = false;
+            document.getElementById('loading').style.display = 'none';
+            botoes.forEach(btn => btn.disabled = false);
+          })
+          .executarAcaoPesquisa(modo, idPesquisa);
+      }
+
+      carregarPesquisas();
+    </script>
+  </body>
+</html>
